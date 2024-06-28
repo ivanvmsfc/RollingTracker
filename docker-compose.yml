@@ -1,0 +1,9 @@
+services:
+  rollingtracker:
+    build: .
+    container_name: RollingTracker
+    working_dir: /code/bot
+    command: ["python", "main.py"]
+    volumes:
+      - ./:/code/bot
+    restart: always
