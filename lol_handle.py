@@ -97,7 +97,7 @@ async def post_game(session, puuid, game_id):
                     "Assists": participant_data['assists'],
                     "Champion": participant_data['championName'],
                     "Role": participant_data['individualPosition'],
-                    "Total Damage Dealt": participant_data['totalDamageDealt'],
+                    "Total Damage Dealt": participant_data['totalDamageDealtToChampions'],
                     "Total Damage Taken": participant_data['totalDamageTaken'],
                     "Gold Earned": participant_data['goldEarned'],
                     "Vision Score": participant_data['visionScore'],
