@@ -5,6 +5,11 @@ import aiohttp
 import json
 import os
 from lol_handle import *
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
@@ -37,10 +42,34 @@ async def check_players(champions):
                             summoners[name][1] = True
                             summoners[name][2] = game_id
                             tier, rank, lp = await get_current_elo(session, puuid)
+                            acc_name, acc_tag = await get_name(session, puuid)
 
-                            embed = Embed(title=f'{name} está en partida!', color=0xff0000)
+                                    # Define the colors for each tier
+                            tier_colors = {
+                                "IRON": 0x62636C,
+                                "BRONZE": 0xCD7F32,
+                                "SILVER": 0xC0C0C0,
+                                "GOLD": 0xFFD700,
+                                "PLATINUM": 0x00BFFF,
+                                "EMERALD": 0x50C878,
+                                "DIAMOND": 0xB9F2FF,
+                                "MASTER": 0x800080,
+                                "GRANDMASTER": 0xDC143C,
+                                "CHALLENGER": 0xFFD700
+                            }
+                            color = tier_colors.get(tier.upper(), 0xFF0000)
+
+                            try:
+                                acc_name = acc_name.replace(" ", "%20")
+                            except:
+                                pass
+                            
+                            opgg_url = f'https://www.op.gg/summoners/euw/{acc_name}-{acc_tag}/ingame'
+
+                            embed = Embed(title=f'{name} está en partida!', color=color)
                             embed.add_field(name='Campeón', value=champion_name, inline=False)
                             embed.add_field(name='ELO actual', value=f'{tier} {rank} {lp} LPs', inline=False)
+                            embed.add_field(name='Perfil OPGG', value=f'[Ver perfil en OPGG]({opgg_url})', inline=False)
                             await channel.send(embed=embed)
 
 
@@ -49,8 +78,23 @@ async def check_players(champions):
                     tier, rank, lp = await get_current_elo(session, puuid)
                     relevant_data = await post_game(session, puuid, game_id)
                     
-                    embed = Embed(title=f'{name} ha terminado la partida!', color=0xff0000)
+                    # Define the colors for each tier
+                    tier_colors = {
+                        "IRON": 0x62636C,
+                        "BRONZE": 0xCD7F32,
+                        "SILVER": 0xC0C0C0,
+                        "GOLD": 0xFFD700,
+                        "PLATINUM": 0x00BFFF,
+                        "EMERALD": 0x50C878,
+                        "DIAMOND": 0xB9F2FF,
+                        "MASTER": 0x800080,
+                        "GRANDMASTER": 0xDC143C,
+                        "CHALLENGER": 0xFFD700
+                    }
+                    color = tier_colors.get(tier.upper(), 0xFF0000)
+                    embed = Embed(title=f'{name} ha terminado la partida!', color=color)
                     embed.add_field(name='Resultado', value=relevant_data["Match Outcome"], inline=False)
+                    embed.add_field(name='Campeón', value=champion_name, inline=False)
                     embed.add_field(name='KDA', value=relevant_data["KDA"], inline=False)
                     embed.add_field(name='Posición', value=relevant_data["Role"], inline=False)
                     embed.add_field(name='Daño Total Realizado', value=relevant_data["Total Damage Dealt"], inline=False)
@@ -69,7 +113,8 @@ async def check_players(champions):
 
 @client.event
 async def on_ready():
-    print(f'Bot is ready. Logged in as {client.user}')
+    logging.info(f'Bot is ready. Logged in as {client.user}')
+    await client.change_presence(activity=discord.Game(name="Trackeao Lacra"))
 
 @client.event
 async def setup_hook():
