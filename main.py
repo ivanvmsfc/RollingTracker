@@ -36,7 +36,7 @@ async def check_players(champions):
                     if participant:
                         champion_id = participant['championId']
                         champion_name = champions.get(champion_id, "Unknown Champion")
-
+                        summoners[name][3] = champion_name
 
                         if not is_playing:
                             summoners[name][1] = True
@@ -94,7 +94,7 @@ async def check_players(champions):
                     color = tier_colors.get(tier.upper(), 0xFF0000)
                     embed = Embed(title=f'{name} ha terminado la partida!', color=color)
                     embed.add_field(name='Resultado', value=relevant_data["Match Outcome"], inline=False)
-                    embed.add_field(name='Campeón', value=champion_name, inline=False)
+                    embed.add_field(name='Campeón', value=summoners[name][3], inline=False)
                     embed.add_field(name='KDA', value=relevant_data["KDA"], inline=False)
                     embed.add_field(name='Posición', value=relevant_data["Role"], inline=False)
                     embed.add_field(name='Daño Total Realizado', value=relevant_data["Total Damage Dealt"], inline=False)
