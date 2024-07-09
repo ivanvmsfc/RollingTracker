@@ -28,7 +28,12 @@ async def check_players(champions):
         with open(JSON_FILE_PATH, 'r') as f:
             summoners = json.load(f)
         async with aiohttp.ClientSession() as session:
-            for name, (puuid, is_playing, test) in summoners.items():
+            for name, details in summoners.items():
+                if len(details) != 4:
+                    logger.error(f"Incorrect data format for summoner {name}: {details}")
+                    continue
+                
+                puuid, is_playing, game_id, champion_name = details
                 game_info = await fetch_active_game(session, puuid)
                 if game_info:
                     game_id = game_info['gameId']
