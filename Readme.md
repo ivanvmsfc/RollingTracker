@@ -15,3 +15,7 @@
       ```
       your_riot_api_key_here
       ```
+
+
+## Sponsors
+Proudly sponsored by [Iron4Accounts](https://iron4accounts.com) – Your trusted source for Iron 4 accounts.
