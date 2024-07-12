@@ -1,6 +1,13 @@
 import json
+# Read the API key from the file
+def read_api_key(file_path):
+    with open(file_path, 'r') as file:
+        api_key = file.read().strip()
+    return api_key
 
-RIOT_API_KEY = 'RGAPI-eef7c8ac-953d-4fd3-9285-70a95419ee61'  # Replace with your Riot API key
+# Usage
+file_path = 'tokenriot.txt'
+RIOT_API_KEY = read_api_key(file_path)
 CHAMPION_DATA_URL = 'https://ddragon.leagueoflegends.com/cdn/14.13.1/data/en_US/champion.json'
 
 

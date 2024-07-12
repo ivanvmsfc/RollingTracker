@@ -14,11 +14,18 @@ logger = logging.getLogger(__name__)
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 
-TOKEN = 'MTI1NjM0MDkyMDMzNzU2Nzc0Ng.GkY8cb.RVs08J8doU-YXT3KqidbNfrYijeJKgW7O8s-sk'
+# Read the API key from the file
+def read_api_key(file_path):
+    with open(file_path, 'r') as file:
+        api_key = file.read().strip()
+    return api_key
+
+# Usage
+file_path = 'tokendisc.txt'
+TOKEN = read_api_key(file_path)
 CHANNEL_ID = 1256350316673368159  # Replace with your channel ID
 MESSAGE = "Hello, this is a periodic message!"
 JSON_FILE_PATH = 'summoners.json'  # Path to your JSON file
-
 
 
 async def check_players(champions):
