@@ -1,0 +1,1 @@
+** CREATE "tokendisc.txt" FILE WITH DISCORD TOKEN **
