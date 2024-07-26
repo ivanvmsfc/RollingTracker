@@ -1,5 +1,6 @@
 import discord
 from discord import Embed
+from discord.ext import commands
 import asyncio
 import aiohttp
 import json
@@ -11,8 +12,20 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+class GatewayEventFilter(logging.Filter):
+    def __init__(self) -> None:
+        super().__init__('discord.gateway')
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.exc_info is not None and isinstance(record.exc_info[1], discord.ConnectionClosed):
+            return False
+        return True
+
+logging.getLogger('discord.gateway').addFilter(GatewayEventFilter())
+
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix='!RT', intents=intents)
 
 # Read the API key from the file
 def read_api_key(file_path):
@@ -27,10 +40,26 @@ CHANNEL_ID = 1256350316673368159  # Replace with your channel ID
 MESSAGE = "Hello, this is a periodic message!"
 JSON_FILE_PATH = 'summoners.json'  # Path to your JSON file
 
+# Define the colors for each tier
+tier_colors = {
+    "IRON": 0x62636C,
+    "BRONZE": 0xCD7F32,
+    "SILVER": 0xC0C0C0,
+    "GOLD": 0xFFD700,
+    "PLATINUM": 0x00BFFF,
+    "EMERALD": 0x50C878,
+    "DIAMOND": 0xB9F2FF,
+    "MASTER": 0x800080,
+    "GRANDMASTER": 0xDC143C,
+    "CHALLENGER": 0xFFD700
+}
 
-async def check_players(champions):
-    await client.wait_until_ready()
-    channel = client.get_channel(CHANNEL_ID)
+async def send_message(msg):
+    await bot.wait_until_ready()
+    channel = bot.get_channel(CHANNEL_ID)
+    await channel.send(embed=msg)
+
+async def check_players():
     while not client.is_closed():
         with open(JSON_FILE_PATH, 'r') as f:
             summoners = json.load(f)
@@ -42,6 +71,7 @@ async def check_players(champions):
                 
                 puuid, is_playing, game_id, champion_name = details
                 game_info = await fetch_active_game(session, puuid)
+                asyncio.sleep(.5)
                 if game_info:
                     game_id = game_info['gameId']
                     participant = next((p for p in game_info['participants'] if p['puuid'] == puuid), None)
@@ -53,22 +83,12 @@ async def check_players(champions):
                         if not is_playing:
                             summoners[name][1] = True
                             summoners[name][2] = game_id
+                            
                             tier, rank, lp = await get_current_elo(session, puuid)
+                            asyncio.sleep(.5)
                             acc_name, acc_tag = await get_name(session, puuid)
+                            asyncio.sleep(.5)
 
-                                    # Define the colors for each tier
-                            tier_colors = {
-                                "IRON": 0x62636C,
-                                "BRONZE": 0xCD7F32,
-                                "SILVER": 0xC0C0C0,
-                                "GOLD": 0xFFD700,
-                                "PLATINUM": 0x00BFFF,
-                                "EMERALD": 0x50C878,
-                                "DIAMOND": 0xB9F2FF,
-                                "MASTER": 0x800080,
-                                "GRANDMASTER": 0xDC143C,
-                                "CHALLENGER": 0xFFD700
-                            }
                             color = tier_colors.get(tier.upper(), 0xFF0000)
 
                             try:
@@ -82,27 +102,18 @@ async def check_players(champions):
                             embed.add_field(name='Campeón', value=champion_name, inline=False)
                             embed.add_field(name='ELO actual', value=f'{tier} {rank} {lp} LPs', inline=False)
                             embed.add_field(name='Perfil OPGG', value=f'[Ver perfil en OPGG]({opgg_url})', inline=False)
-                            await channel.send(embed=embed)
+                            await send_message(embed)
+                            asyncio.sleep(.5)
 
 
                 elif is_playing:
                     game_id = summoners[name][2]
+
                     tier, rank, lp = await get_current_elo(session, puuid)
+                    asyncio.sleep(.5)
                     relevant_data = await post_game(session, puuid, game_id)
+                    asyncio.sleep(.5)
                     
-                    # Define the colors for each tier
-                    tier_colors = {
-                        "IRON": 0x62636C,
-                        "BRONZE": 0xCD7F32,
-                        "SILVER": 0xC0C0C0,
-                        "GOLD": 0xFFD700,
-                        "PLATINUM": 0x00BFFF,
-                        "EMERALD": 0x50C878,
-                        "DIAMOND": 0xB9F2FF,
-                        "MASTER": 0x800080,
-                        "GRANDMASTER": 0xDC143C,
-                        "CHALLENGER": 0xFFD700
-                    }
                     color = tier_colors.get(tier.upper(), 0xFF0000)
                     embed = Embed(title=f'{name} ha terminado la partida!', color=color)
                     embed.add_field(name='Resultado', value=relevant_data["Match Outcome"], inline=False)
@@ -113,7 +124,8 @@ async def check_players(champions):
                     embed.add_field(name='Daño Total Recibido', value=relevant_data["Total Damage Taken"], inline=False)
                     embed.add_field(name='Puntuación de Visión', value=relevant_data["Vision Score"], inline=False)
                     embed.add_field(name='ELO final', value=f'{tier} {rank} {lp} LPs', inline=False)
-                    await channel.send(embed=embed)
+                    await send_message(embed)
+                    asyncio.sleep(.5)
 
                     summoners[name][1] = False
 
@@ -123,20 +135,44 @@ async def check_players(champions):
             json.dump(summoners, f, indent=4)
         await asyncio.sleep(300)
 
-@client.event
-async def on_ready():
-    logging.info(f'Bot is ready. Logged in as {client.user}')
-    await client.change_presence(activity=discord.Game(name="Trackeao Lacra"))
+async def basic_setup():
+    await bot.wait_until_ready()
+    channel = bot.get_channel(CHANNEL_ID)
 
-@client.event
+    embed = Embed(title=rf"TRACKEAO LACRA", color=0xFF0000)
+    embed.description = "Bot is now up"
+    await channel.send(embed=embed)
+
+
+# Handle errors for commands
+@bot.event
+async def on_command_error(ctx, error):
+    # Check if the error is a CommandNotFound error
+    if isinstance(error, commands.CommandNotFound):
+        # Ignore the error and do nothing
+        pass
+    else:
+        # If it's a different error, you might want to raise it or handle it differently
+        raise error
+
+@bot.event
+async def on_ready():
+    logging.info(f'Bot is ready. Logged in as {bot.user}')
+    await bot.change_presence(activity=discord.Game(name="Trackeao Lacra"))
+    await basic_setup()
+
+
+@bot.event
 async def setup_hook():
+    global champions
     async with aiohttp.ClientSession() as session:
         champions = await fetch_and_store_champion_data(session)
-    client.loop.create_task(check_players(champions))
+    bot.loop.create_task(check_players())
+    pass
 
 async def main():
-    async with client:
-        await client.start(TOKEN)
+    async with bot:
+        await bot.start(TOKEN)
 
 # Run the main function
 asyncio.run(main())
